@@ -4,6 +4,8 @@ import ast
 import textwrap
 from typing import List, Optional
 
+from .frontend import render_flat_aidl
+
 
 def _indent(level: int) -> str:
     return "  " * level
@@ -146,4 +148,5 @@ class _PythonToAIDL:
 
 
 def reverse_translate_python(source: str) -> str:
-    return _PythonToAIDL(source).convert()
+    indented = _PythonToAIDL(source).convert()
+    return render_flat_aidl(indented)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Dict, Iterable, List, Sequence, Tuple, Union
 
 
@@ -17,11 +18,21 @@ class DSLCompileError(ValueError):
 
 
 def normalize_lines(source: str) -> List[Line]:
+    raw_lines = source.splitlines()
+    significant = [
+        (number, raw)
+        for number, raw in enumerate(raw_lines, start=1)
+        if raw.strip() and not raw.strip().startswith("#")
+    ]
+    if _looks_like_flat_mode(significant):
+        return _normalize_flat_lines(significant)
+    return _normalize_indented_lines(significant)
+
+
+def _normalize_indented_lines(significant: Sequence[Tuple[int, str]]) -> List[Line]:
     lines: List[Line] = []
-    for number, raw in enumerate(source.splitlines(), start=1):
+    for number, raw in significant:
         stripped = raw.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
         indent = len(raw) - len(raw.lstrip(" "))
         if indent % 2 != 0:
             raise DSLCompileError(
@@ -29,6 +40,73 @@ def normalize_lines(source: str) -> List[Line]:
             )
         lines.append(Line(number=number, indent=indent // 2, text=stripped))
     return lines
+
+
+_FLAT_SUFFIX_RE = re.compile(r"^(?P<text>.*?)(?: (?P<next>[0-9]))?$")
+
+
+def _looks_like_flat_mode(significant: Sequence[Tuple[int, str]]) -> bool:
+    if not significant:
+        return False
+    if any(raw.startswith(" ") for _, raw in significant):
+        return False
+    if len(significant) == 1:
+        return bool(_FLAT_SUFFIX_RE.match(significant[0][1].rstrip()))
+    for _, raw in significant[:-1]:
+        if _FLAT_SUFFIX_RE.match(raw.rstrip()) is None:
+            return False
+        if not re.search(r" [0-9]$", raw.rstrip()):
+            return False
+    return True
+
+
+def _normalize_flat_lines(significant: Sequence[Tuple[int, str]]) -> List[Line]:
+    lines: List[Line] = []
+    current_indent_spaces = 0
+    for index, (number, raw) in enumerate(significant):
+        if raw.startswith(" "):
+            raise DSLCompileError(
+                f"Line {number}: flat AIDL form must keep every line left-aligned"
+            )
+        match = _FLAT_SUFFIX_RE.match(raw.rstrip())
+        if match is None:
+            raise DSLCompileError(f"Line {number}: invalid flat AIDL line")
+        text = match.group("text")
+        next_indent_text = match.group("next")
+        next_indent_spaces = int(next_indent_text) if next_indent_text is not None else 0
+        if current_indent_spaces % 2 != 0:
+            raise DSLCompileError(
+                f"Line {number}: current indentation in flat mode must be an even number of spaces"
+            )
+        if next_indent_spaces % 2 != 0:
+            raise DSLCompileError(
+                f"Line {number}: next-line indentation in flat mode must be an even number of spaces"
+            )
+        if next_indent_spaces > 8:
+            raise DSLCompileError(
+                f"Line {number}: flat mode currently supports at most 8 spaces of indentation"
+            )
+        if not text.strip():
+            raise DSLCompileError(f"Line {number}: flat AIDL line cannot be empty")
+        lines.append(
+            Line(number=number, indent=current_indent_spaces // 2, text=text.strip())
+        )
+        if index == len(significant) - 1 and next_indent_text is None:
+            current_indent_spaces = 0
+        else:
+            current_indent_spaces = next_indent_spaces
+    return lines
+
+
+def render_flat_aidl(source: str) -> str:
+    lines = normalize_lines(source)
+    out: List[str] = []
+    for index, line in enumerate(lines):
+        next_indent_spaces = (
+            lines[index + 1].indent * 2 if index + 1 < len(lines) else 0
+        )
+        out.append(f"{line.text} {next_indent_spaces}")
+    return "\n".join(out) + ("\n" if out else "")
 
 
 def split_top_level_args(text: str) -> List[str]:

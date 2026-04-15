@@ -54,6 +54,31 @@ The stable path today is still Python-first:
 
 The first milestone is to make `AI-DSL -> Python` strong.
 
+There is also a hard constraint at the current stage:
+
+- the syntax must support `Python <-> AIDL` bidirectional conversion
+- the current priority is one-to-one, reversible mapping
+- syntax sugar that breaks reversibility should not enter the main language yet
+
+This means the prototype is not currently chasing the most aggressive irreversible compression. It first needs a stable reversible core.
+
+Under that constraint, the syntax now also supports a flatter surface form that is more token-oriented:
+
+- each line stays left-aligned
+- the line ends with ` space + one digit` to indicate the indentation space count of the next translated line
+- in the current Python path, that digit should be an even number such as `0 / 2 / 4 / 6 / 8`
+- the last line can theoretically omit the suffix, but the current prototype keeps it explicit for stable round-tripping
+
+Example:
+
+```text
+for step in range(10) 2
+= loss criterion(logits, y) 2
+p loss 0
+```
+
+This flat form and the older indentation form are intended to be equivalent and both must remain bidirectionally convertible.
+
 The currently supported compression macros include:
 
 - `F / M / FM`
@@ -187,12 +212,7 @@ The more radical direction is not just "a shorter Python-like DSL."
 
 It may eventually become a language form that is more native to AI exchange itself: built on denser language material, stripped of low-value modifiers, and restored on-device through a fast translator into host languages or human-readable text.
 
-My current intuition is:
-
-- lossless encoding
-- lossy decoding
-
-AI-facing exchange stays compact and stable; human-facing recovery can expand, restate, and reshape as long as the semantics are preserved.
+In the future, it may still be worth exploring ideas such as "lossless encoding + lossy decoding", but not yet. At the current stage, bidirectional reversibility remains a hard requirement.
 
 ## Co-Build
 
