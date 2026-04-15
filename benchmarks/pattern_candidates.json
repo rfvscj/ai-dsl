@@ -1,0 +1,49 @@
+{
+  "patterns": [
+    {
+      "name": "filter_map_sum",
+      "python": "result = sum([x * x for x in nums if x % 2 == 0])",
+      "candidates": {
+        "current_dsl": "= result S(FM(nums,_%2==0,_*_))",
+        "sfm_macro": "= result SFM(nums,_%2==0,_*_)",
+        "pipe_style": "= result nums|_%2==0|_*_|S"
+      }
+    },
+    {
+      "name": "dict_comprehension",
+      "python": "mapping = {x: x * x for x in nums if x > 0}",
+      "candidates": {
+        "current_pythonish": "= mapping {x: x * x for x in nums if x > 0}",
+        "dfm_macro": "= mapping DFM(nums,_,_*_,_>0)",
+        "dict_pipe": "= mapping nums|D:_,_*_|_>0"
+      }
+    },
+    {
+      "name": "count_if",
+      "python": "count = len([x for x in nums if x > 10])",
+      "candidates": {
+        "current_dsl": "= count len(F(nums,_>10))",
+        "cf_macro": "= count CF(nums,_>10)",
+        "sum_bool": "= count S(M(nums,_>10))"
+      }
+    },
+    {
+      "name": "join_map",
+      "python": "text = ','.join([str(x) for x in nums])",
+      "candidates": {
+        "current_dsl": "= text ','.join(M(nums,str(_)))",
+        "join_macro": "= text J(nums,',',str(_))",
+        "pipe_style": "= text nums|str(_)|J(',')"
+      }
+    },
+    {
+      "name": "append_loop",
+      "python": "out = []\nfor x in nums:\n    out.append(x * x)",
+      "candidates": {
+        "current_dsl": "= out M(nums,_*_)",
+        "map_macro": "= out M(nums,_*_)",
+        "loop_style": "= out []\nfor x in nums\n  py out.append(x * x)"
+      }
+    }
+  ]
+}

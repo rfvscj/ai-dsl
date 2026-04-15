@@ -17,7 +17,7 @@ class DSLCompileError(ValueError):
     pass
 
 
-_MACRO_NAMES = {"F", "M", "FM", "S", "A", "E"}
+_MACRO_NAMES = {"DFM", "SFM", "CF", "F", "M", "FM", "S", "A", "E"}
 _PLACEHOLDER_RE = re.compile(r"\b_\b")
 _LEN_RE = re.compile(r"\blen\(")
 
@@ -137,6 +137,45 @@ def _translate_cpp_literal(expr: str) -> str:
 
 
 def _expand_macro(name: str, args: List[str], backend: str) -> str:
+    if name == "SFM":
+        if len(args) != 3:
+            raise DSLCompileError("SFM(seq, cond, expr) expects exactly 3 arguments")
+        seq, cond, expr = args
+        if backend == "cpp":
+            return (
+                f"tl_sum(tl_filter_map({seq}, [&](const auto& it) {{ "
+                f"return {_replace_placeholder(cond, 'it')}; }}, "
+                f"[&](const auto& it) {{ return {_replace_placeholder(expr, 'it')}; }}))"
+            )
+        return (
+            f"sum({_replace_placeholder(expr, 'it')} "
+            f"for it in {seq} if {_replace_placeholder(cond, 'it')})"
+        )
+
+    if name == "CF":
+        if len(args) != 2:
+            raise DSLCompileError("CF(seq, cond) expects exactly 2 arguments")
+        seq, cond = args
+        if backend == "cpp":
+            return (
+                f"tl_count_if({seq}, [&](const auto& it) {{ "
+                f"return {_replace_placeholder(cond, 'it')}; }})"
+            )
+        return f"sum(1 for it in {seq} if {_replace_placeholder(cond, 'it')})"
+
+    if name == "DFM":
+        if len(args) != 4:
+            raise DSLCompileError(
+                "DFM(seq, key, value, cond) expects exactly 4 arguments"
+            )
+        seq, key, value, cond = args
+        if backend == "cpp":
+            raise DSLCompileError("DFM is not supported for the C++ backend yet")
+        return (
+            f"{{{_replace_placeholder(key, 'it')}: {_replace_placeholder(value, 'it')} "
+            f"for it in {seq} if {_replace_placeholder(cond, 'it')}}}"
+        )
+
     if name == "S":
         if len(args) != 1:
             raise DSLCompileError("S(seq) expects exactly 1 argument")
@@ -498,6 +537,11 @@ def compile_source_cpp(source: str) -> str:
         "template <class Seq, class Pred>",
         "bool tl_all(const Seq& seq, Pred pred) {",
         "    return std::all_of(seq.begin(), seq.end(), pred);",
+        "}",
+        "",
+        "template <class Seq, class Pred>",
+        "int tl_count_if(const Seq& seq, Pred pred) {",
+        "    return static_cast<int>(std::count_if(seq.begin(), seq.end(), pred));",
         "}",
         "",
         "template <class T>",
