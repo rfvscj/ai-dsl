@@ -10,6 +10,8 @@
 
 **AI-DSL，就是通用的 AI 编程中间层。**
 
+更进一步说，`AI-DSL -> binary -> run` 不是附带能力，而是这个方向的最终目标之一。长期看，我希望可以直接用 AI-DSL 构建项目，编译器、运行时、构建工具、调试接口等生态都围绕 AI-DSL 展开，让 AI 用低 token 的方式完成项目开发、构建和执行的整个过程。
+
 核心目标不是提升人类可读性，而是尽量压缩代码在 tokenizer 下的 token 成本。当前原型采用这条路径：
 
 - 让 AI 输出更短的 DSL
@@ -42,6 +44,10 @@
   是为了更容易接入不同语言编写的现有项目和工程体系。例如有的项目主干是 Python，有的项目主干是 C++，未来也可能是 Rust、Go 或其他语言。
 - 支持独立二进制路径
   是为了在某些场景下绕开解释器或宿主语言运行时，争取更高的执行效率、更简单的部署方式，以及更可控的产物形态。
+
+短期看，多语言后端是为了接入现实项目。
+
+长期看，独立二进制路径意味着 AI-DSL 不再只是“别的语言的前端”，而可能成为一种可以直接承载项目构建的核心表示。也就是说，未来理想形态不是“AI-DSL 帮助生成 Python/C++”，而是“AI 直接用 AI-DSL 构建项目，整套工具链围绕 AI-DSL 运转”。
 
 目前真正可稳定使用的是 Python 后端。
 
@@ -154,6 +160,8 @@ I want to shift AI code generation from "directly producing human-facing source 
 
 **AI-DSL is a general intermediate layer for AI programming.**
 
+Going one step further, `AI-DSL -> binary -> run` is not just an optional extra. It is one of the long-term end goals. The broader vision is that projects could eventually be built directly in AI-DSL, with compilers, runtimes, build tools, and debugging interfaces centered around AI-DSL itself, so AI can build and run software through a lower-token representation end to end.
+
 **what if code meant primarily for AI-to-machine exchange should use a representation that is more token-efficient than plain Python?**
 
 The goal is not better readability for humans. The goal is to reduce token cost when code is generated, transmitted, and interpreted by language models.
@@ -190,6 +198,10 @@ This is not just about supporting more targets for its own sake. Each path serve
   make it easier to integrate the DSL into projects that are already built around different host languages. Some codebases are Python-first, some are C++-first, and future targets may include Rust, Go, or others.
 - A direct binary path
   is meant for cases where the DSL should run without going through an interpreter or a host-language runtime first, with the goal of improving execution efficiency, deployment simplicity, and output control.
+
+In the short term, multiple language backends help AI-DSL integrate with existing projects.
+
+In the long term, a direct binary path means AI-DSL may stop being just a frontend to other languages and become a primary project-building representation in its own right. The ideal end state is not only "AI-DSL helps generate Python/C++", but "AI uses AI-DSL to build projects directly, while the toolchain is designed around AI-DSL itself."
 
 Right now, the Python backend is the stable path.
 
