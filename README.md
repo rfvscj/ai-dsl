@@ -6,6 +6,10 @@
 
 这是我的一个想法：做一个更适合 AI 生成、阅读和传递的 Python 风格 DSL。
 
+一句话来说，我想把 AI 写代码这件事，从“直接生成人类语言源码”，改成“先生成 AI-DSL，再由本地客户端编译到目标语言或可执行形式”。
+
+**AI-DSL，就是通用的 AI 编程中间层。**
+
 核心目标不是提升人类可读性，而是尽量压缩代码在 tokenizer 下的 token 成本。当前原型采用这条路径：
 
 - 让 AI 输出更短的 DSL
@@ -145,6 +149,10 @@ node scripts/benchmark_pipeline.mjs
 ## English
 
 This repository is an early prototype for a simple idea:
+
+I want to shift AI code generation from "directly producing human-facing source code" to "first producing AI-DSL, then letting the local client compile it into a target language or executable form."
+
+**AI-DSL is a general intermediate layer for AI programming.**
 
 **what if code meant primarily for AI-to-machine exchange should use a representation that is more token-efficient than plain Python?**
 
