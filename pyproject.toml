@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-dsl-prototype"
+version = "0.1.0"
+description = "A tiny prototype of a concise AI-oriented DSL that compiles to Python."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name = "Codex" }
+]
+
+[project.scripts]
+aidsl = "aidsl.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

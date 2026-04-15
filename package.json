@@ -1,0 +1,9 @@
+{
+  "name": "ai-dsl-prototype-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "js-tiktoken": "^1.0.21"
+  }
+}

@@ -1,0 +1,2 @@
+Write code for this task:
+Given a list of integers, keep only the even numbers, square them, sum the squares, and print the result for [1, 2, 3, 4, 5, 6].
