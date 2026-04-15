@@ -10,8 +10,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Tiny AI-oriented DSL prototype")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    compile_cmd = sub.add_parser("compile", help="Compile DSL source into Python")
+    compile_cmd = sub.add_parser("compile", help="Compile DSL source into a backend")
     compile_cmd.add_argument("path", help="Path to a .aidl file")
+    compile_cmd.add_argument(
+        "--target",
+        choices=["python", "cpp"],
+        default="python",
+        help="Compilation target backend",
+    )
 
     run_cmd = sub.add_parser("run", help="Compile and execute a .aidl file")
     run_cmd.add_argument("path", help="Path to a .aidl file")
@@ -34,7 +40,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "compile":
-        print(compile_file(args.path), end="")
+        print(compile_file(args.path, target=args.target), end="")
         return
 
     if args.command == "run":

@@ -20,8 +20,44 @@
 
 - 缩进敏感的 DSL 语法
 - `DSL -> Python` 编译器
+- `DSL -> C++` 编译器雏形
 - 一组表达式级压缩宏，例如 `F / M / FM / S / A / E`
 - 用 OpenAI 兼容 tokenizer 做 token 对比的 benchmark 脚本
+
+### 当前后端路线
+
+目前项目已经明确朝多后端走：
+
+1. `ai-dsl -> python -> 解释器 -> 运行`
+2. `ai-dsl -> c++ -> 编译 -> 运行`
+3. `ai-dsl -> 二进制 -> 运行`（未来目标，当前未实现）
+
+这样设计不是为了单纯支持更多目标，而是分别对应不同需求：
+
+- 支持多种语言后端
+  是为了更容易接入不同语言编写的现有项目和工程体系。例如有的项目主干是 Python，有的项目主干是 C++，未来也可能是 Rust、Go 或其他语言。
+- 支持独立二进制路径
+  是为了在某些场景下绕开解释器或宿主语言运行时，争取更高的执行效率、更简单的部署方式，以及更可控的产物形态。
+
+目前真正可稳定使用的是 Python 后端。
+
+C++ 后端目前是雏形，目标是证明“同一份 DSL 可以落到不同语言后端”这件事是可行的。它现在主要支持：
+
+- 函数定义
+- 赋值
+- `if / else`
+- `return`
+- `print`
+- `len`
+- `F / M / FM / S / A / E` 这些宏
+- 数字列表和字符串列表这类基础容器
+
+暂时还不完整，尤其对 Python 专属表达式支持有限，例如：
+
+- f-string
+- Python 列表推导原语
+- `range(...)`
+- 更复杂的动态类型行为
 
 ### 这个仓库想表达什么
 
@@ -54,6 +90,7 @@ python -m venv .venv
 pip install -e .
 aidsl compile examples\fib.aidl
 aidsl run examples\fib.aidl
+aidsl compile benchmarks\small_task.aidl --target cpp
 ```
 
 ### 语法示例
@@ -99,7 +136,7 @@ node scripts/benchmark_pipeline.mjs
 
 ### 项目结构
 
-- `src/aidsl/compiler.py`: 编译器
+- `src/aidsl/compiler.py`: Python / C++ 双后端编译器
 - `src/aidsl/cli.py`: CLI
 - `examples/`: 示例
 - `benchmarks/`: token benchmark
@@ -127,8 +164,44 @@ What is already here:
 
 - an indentation-sensitive DSL
 - a `DSL -> Python` compiler
+- an early `DSL -> C++` compiler
 - expression-level compression macros such as `F / M / FM / S / A / E`
 - benchmark scripts using OpenAI-compatible token encodings
+
+### Backend roadmap
+
+The project is now explicitly moving toward multiple backend paths:
+
+1. `ai-dsl -> python -> interpreter -> run`
+2. `ai-dsl -> c++ -> compiler -> run`
+3. `ai-dsl -> binary -> run` (future target, not implemented yet)
+
+This is not just about supporting more targets for its own sake. Each path serves a different practical purpose:
+
+- Multiple language backends
+  make it easier to integrate the DSL into projects that are already built around different host languages. Some codebases are Python-first, some are C++-first, and future targets may include Rust, Go, or others.
+- A direct binary path
+  is meant for cases where the DSL should run without going through an interpreter or a host-language runtime first, with the goal of improving execution efficiency, deployment simplicity, and output control.
+
+Right now, the Python backend is the stable path.
+
+The C++ backend is intentionally incomplete. Its current role is to prove that one DSL can target more than one execution language. For now it mainly supports:
+
+- function definitions
+- assignments
+- `if / else`
+- `return`
+- `print`
+- `len`
+- `F / M / FM / S / A / E` macros
+- basic numeric and string list literals
+
+It does not yet cover many Python-specific constructs, including:
+
+- f-strings
+- Python list-comprehension syntax
+- `range(...)`
+- more dynamic typing behavior
 
 ### What this repo is trying to show
 
@@ -164,6 +237,7 @@ python -m venv .venv
 pip install -e .
 aidsl compile examples\fib.aidl
 aidsl run examples\fib.aidl
+aidsl compile benchmarks\small_task.aidl --target cpp
 ```
 
 ### Example
@@ -207,7 +281,7 @@ node scripts/benchmark_pipeline.mjs
 
 ### Layout
 
-- `src/aidsl/compiler.py`: compiler
+- `src/aidsl/compiler.py`: Python and C++ backends
 - `src/aidsl/cli.py`: CLI
 - `examples/`: examples
 - `benchmarks/`: token benchmarks
