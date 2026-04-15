@@ -3,7 +3,14 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .compiler import count_stats, iter_examples, run_compiled, translate_file, translate_source
+from .compiler import (
+    count_stats,
+    iter_examples,
+    reverse_translate_file,
+    run_compiled,
+    translate_file,
+    translate_source,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -31,6 +38,9 @@ def _build_parser() -> argparse.ArgumentParser:
     run_cmd = sub.add_parser("run", help="Interpret a .aidl file via the Python translator")
     run_cmd.add_argument("path", help="Path to a .aidl file")
 
+    reverse_cmd = sub.add_parser("reverse", help="Translate a Python file into AIDL")
+    reverse_cmd.add_argument("path", help="Path to a .py file")
+
     stats_cmd = sub.add_parser("stats", help="Show simple size statistics after Python translation")
     stats_cmd.add_argument("path", help="Path to a .aidl file")
 
@@ -55,6 +65,10 @@ def main() -> None:
     if args.command == "run":
         source = Path(args.path).read_text(encoding="utf-8")
         run_compiled(source, filename=args.path)
+        return
+
+    if args.command == "reverse":
+        print(reverse_translate_file(args.path), end="")
         return
 
     if args.command == "stats":

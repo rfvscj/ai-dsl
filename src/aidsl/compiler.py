@@ -5,6 +5,7 @@ from typing import Dict, Union
 
 from .cpp_translator import translate_source_cpp
 from .frontend import DSLCompileError, count_stats, iter_examples, read_source
+from .python_to_aidl import reverse_translate_python
 from .python_translator import run_translated_python, translate_source_python
 
 
@@ -34,3 +35,7 @@ def compile_file(path: Union[str, Path], target: str = "python") -> str:
 
 def run_compiled(source: str, filename: str = "<aidsl>") -> Dict[str, object]:
     return run_translated_python(source, filename=filename)
+
+
+def reverse_translate_file(path: Union[str, Path]) -> str:
+    return reverse_translate_python(read_source(path))
