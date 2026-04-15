@@ -1,127 +1,124 @@
-# TokenLite / 面向 AI 的低 Token Python 风格 DSL 原型
+# AI-DSL
 
-[中文](#中文说明) | [English](#english)
+[English](README.en.md)
 
-## 中文说明
+面向 AI 编程的低 token 中间表示原型。
 
-这是我的一个想法：做一个更适合 AI 生成、阅读和传递的 Python 风格 DSL。
+一句话说，这个项目想把 AI 写代码这件事，从“直接生成人类语言源码”，改成“先生成 AI-DSL，再由本地客户端翻译到目标语言或可执行形式”。
 
-一句话来说，我想把 AI 写代码这件事，从“直接生成人类语言源码”，改成“先生成 AI-DSL，再由本地客户端编译到目标语言或可执行形式”。
+`AI-DSL` 不是一门主要给人写的语言，它更像一种面向 AI 的编程中间层。
 
-**AI-DSL，就是通用的 AI 编程中间层。**
+## 项目定位
 
-更进一步说，`AI-DSL -> binary -> run` 不是附带能力，而是这个方向的最终目标之一。长期看，我希望可以直接用 AI-DSL 构建项目，编译器、运行时、构建工具、调试接口等生态都围绕 AI-DSL 展开，让 AI 用低 token 的方式完成项目开发、构建和执行的整个过程。
+这是一个 `toy project`。
 
-核心目标不是提升人类可读性，而是尽量压缩代码在 tokenizer 下的 token 成本。当前原型采用这条路径：
+它首先是我提出的一个想法和一个早期原型，不是成熟语言，也不是已经严格验证的完整系统。我非常欢迎更有经验的人继续共建，把这个方向做扎实。
 
-- 让 AI 输出更短的 DSL
-- 在本地把 DSL 编译成 Python
-- 继续复用 Python 运行时和生态
+当前的重点不是“替代 Python”，而是验证三件事：
 
-### 当前状态
+- AI 直接输出更紧凑的 AIDL，是否真的能减少 token
+- AIDL 是否能稳定翻译到 Python，并复用现有生态
+- 后续是否能继续走向多后端甚至独立二进制
 
-这是一个早期原型，不是成熟语言，也不是完整论文实现。
+## 核心想法
 
-目前已经有：
+当前主流语言主要是为人类设计的，不是为 tokenizer 设计的。
 
-- 缩进敏感的 DSL 语法
-- `DSL -> Python` 编译器
-- `DSL -> C++` 编译器雏形
-- 一组表达式级压缩宏，例如 `F / M / FM / S / A / E / SFM / CF / DFM`
-- 用 OpenAI 兼容 tokenizer 做 token 对比的 benchmark 脚本
+如果代码主要是给 AI 生成、传递、修改、拼接和执行，那么表层表示就不一定还要优先服务人类可读性。AI-DSL 的目标是：
 
-### 当前后端路线
+- 降低代码生成阶段的 token 消耗
+- 降低 AI 与 AI、AI 与本地执行环境之间交换代码的成本
+- 保持和现有软件工程生态兼容
 
-目前项目已经明确朝多后端走：
+长期看，`AI-DSL -> binary -> run` 也是目标之一。理想状态下，项目甚至可以直接用 AI-DSL 构建，编译器、运行时、构建工具和调试接口都围绕 AI-DSL 展开。
 
-1. `ai-dsl -> python -> 解释器 -> 运行`
-2. `ai-dsl -> c++ -> 编译 -> 运行`
-3. `ai-dsl -> 二进制 -> 运行`（未来目标，当前未实现）
+## 当前实现
 
-这样设计不是为了单纯支持更多目标，而是分别对应不同需求：
+目前仓库里已经有：
 
-- 支持多种语言后端
-  是为了更容易接入不同语言编写的现有项目和工程体系。例如有的项目主干是 Python，有的项目主干是 C++，未来也可能是 Rust、Go 或其他语言。
-- 支持独立二进制路径
-  是为了在某些场景下绕开解释器或宿主语言运行时，争取更高的执行效率、更简单的部署方式，以及更可控的产物形态。
+- 缩进敏感的 AIDL 语法
+- `AIDL -> Python` 翻译器
+- `AIDL -> C++` 编译器雏形
+- 本地解释执行入口
+- 一批已验证有 token 收益的压缩宏
+- OpenAI 兼容 tokenizer 的 benchmark 脚本
+- 中文教程、模式分析、论文草稿
 
-短期看，多语言后端是为了接入现实项目。
+当前稳定主线仍然是 Python：
 
-长期看，独立二进制路径意味着 AI-DSL 不再只是“别的语言的前端”，而可能成为一种可以直接承载项目构建的核心表示。也就是说，未来理想形态不是“AI-DSL 帮助生成 Python/C++”，而是“AI 直接用 AI-DSL 构建项目，整套工具链围绕 AI-DSL 运转”。
+1. `ai-dsl -> python -> interpreter -> run`
+2. `ai-dsl -> c++ -> compiler -> run`
+3. `ai-dsl -> binary -> run`（未来目标）
 
-目前真正可稳定使用的是 Python 后端。
+## Python 方向
 
-C++ 后端目前是雏形，目标是证明“同一份 DSL 可以落到不同语言后端”这件事是可行的。它现在主要支持：
+现阶段优先做强 `AI-DSL -> Python`。
 
-- 函数定义
-- 赋值
-- `if / else`
-- `return`
-- `print`
-- `len`
-- `F / M / FM / S / A / E` 这些宏
-- 数字列表和字符串列表这类基础容器
+已经支持并实际用于压缩的宏包括：
 
-暂时还不完整，尤其对 Python 专属表达式支持有限，例如：
+- `F / M / FM`
+- `S / A / E`
+- `SFM / CF / DFM`
+- `CO`
+- `KV / KVF`
+- `ANYN / ALLNN / CNTNN`
 
-- f-string
-- Python 列表推导原语
-- `range(...)`
-- 更复杂的动态类型行为
+这些设计不是为了语法好看，而是为了压缩 Python 里的高频结构，比如：
 
-### Python 优先的压缩方向
-
-当前第一阶段重点是先把 `AI-DSL -> Python` 做强。
-
-现在已经开始专门分析常见 Python 代码模式在 tokenizer 下的开销，优先关注：
-
-- filter + map + reduce
-- dict comprehension
+- filter + map
+- sum over filter-map
 - count-if
-- join + map
-- append loop 到 list transform
+- dict comprehension
+- `None` 合并与存在性判断
 
-目前已经确认有实际 token 收益、并且已经并入 Python 编译器的新增宏包括：
+## 结构化规则
 
-- `SFM(seq, cond, expr)`
-- `CF(seq, cond)`
-- `DFM(seq, key, value, cond)`
+当前 Python 子集的规则已经单独收敛成结构化文件：
 
-### 这个仓库想表达什么
+- `src/aidsl/rules/python_aidl_rules.json`
 
-我想验证一件事：
+翻译器会直接读取这份规则文件；skill 也引用同一份规则。这样做的目的，是先把“语言子集定义”和“翻译器实现”对齐。
 
-**如果代码主要是给 AI 和机器之间交换，而不是给人长期维护，那么是否应该设计一种比 Python 更适合 tokenizer 的表示？**
+但这只是原型期方案，不是最终形态。
 
-现在的实验结果说明，单纯缩写 Python 关键字收益很有限；但如果压缩高频结构模式，例如 filter、map、filter+map、sum，这个方向是有实际 token 收益的。
+如果未来规则集越来越大、越来越语义化、越来越依赖 lowering/runtime 细节，那么把这整套规则通过 prompt 或 skill 塞给模型，可能反而带来 token 负收益。长期目标仍然是让模型直接掌握 AIDL，而不是永远依赖外部 skill。
 
-### 我自己的说明
+## Skill 只是临时接入层
 
-这是我的个人想法和原型实现。我的知识水平有限，这个项目也还很粗糙，很多地方都不完整。
+为了让当前客户端还能输入 Python 风格任务、但要求模型直接输出 AIDL，我先做了一个本地 skill：
 
-如果你觉得这个方向有价值，欢迎继续发扬光大：
+- `skills/aidl-python-output/`
 
-- 补更系统的语言设计
-- 做更严谨的编译器
-- 建更大的 benchmark
-- 做英文论文、正式实验和可复现实证
-- 把它推进成真正的 AI-first programming interface
+它的作用只是原型接入，不是长期产品形态。长期看，我更希望模型能够直接用 AIDL 去训练、理解和生成，而不是靠额外 skill 纠正输出形式。
 
-如果未来有人把这个方向做得更扎实、更系统，我会很高兴。
-
-### 快速开始
+## 快速开始
 
 ```bash
 cd C:\Users\renzhc\workspace\ai-dsl-prototype
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e .
-aidsl compile examples\fib.aidl
+```
+
+翻译：
+
+```bash
+aidsl translate examples\fib.aidl
+```
+
+运行：
+
+```bash
 aidsl run examples\fib.aidl
+```
+
+编译到 C++：
+
+```bash
 aidsl compile benchmarks\small_task.aidl --target cpp
 ```
 
-### 语法示例
+## 例子
 
 ```text
 f even_square_sum(nums)
@@ -133,7 +130,7 @@ f even_square_sum(nums)
 p result
 ```
 
-会编译成：
+翻译成 Python：
 
 ```python
 def even_square_sum(nums):
@@ -145,14 +142,14 @@ result = even_square_sum(data)
 print(result)
 ```
 
-### Token Benchmark
+## Benchmark
 
-项目里提供了两类 benchmark：
+当前有几类脚本：
 
 - `scripts/compare_tokens.mjs`
-  对比 Python 和 DSL 的代码 token / 回答 token
 - `scripts/benchmark_pipeline.mjs`
-  对比生成链路和执行链路的 token
+- `scripts/report_statement_savings.mjs`
+- `scripts/analyze_patterns.mjs`
 
 运行：
 
@@ -160,186 +157,50 @@ print(result)
 npm install
 node scripts/compare_tokens.mjs
 node scripts/benchmark_pipeline.mjs
+node scripts/report_statement_savings.mjs
 ```
 
-### 项目结构
+## 文档
 
-- `src/aidsl/compiler.py`: Python / C++ 双后端编译器
-- `src/aidsl/cli.py`: CLI
-- `examples/`: 示例
-- `benchmarks/`: token benchmark
-- `docs/paper_draft_zh.md`: 中文论文草稿
+- `docs/tutorial_zh.md`：中文教程
+- `docs/paper_draft_zh.md`：中文论文草稿
+- `docs/python_compression_analysis.md`：Python 压缩分析
+- `docs/python_pattern_mining.md`：热门 Python 项目模式挖掘
+- `docs/llm_serving_pattern_mining.md`：Transformers / vLLM / SGLang 模式挖掘
+- `docs/statement_token_savings.md`：语句级 token 节省报告
 
-## English
+## 仓库结构
 
-This repository is an early prototype for a simple idea:
+- `src/aidsl/frontend.py`：DSL 前端与公共工具
+- `src/aidsl/python_translator.py`：Python 翻译器
+- `src/aidsl/cpp_translator.py`：C++ 编译器雏形
+- `src/aidsl/compiler.py`：后端分发入口
+- `src/aidsl/rules/`：结构化规则
+- `skills/aidl-python-output/`：原型期 skill
+- `examples/`：示例
+- `benchmarks/`：基准与样例
+- `docs/`：教程、分析与论文草稿
 
-I want to shift AI code generation from "directly producing human-facing source code" to "first producing AI-DSL, then letting the local client compile it into a target language or executable form."
+## 愿景
 
-**AI-DSL is a general intermediate layer for AI programming.**
+更激进一点，AI-DSL 也许不只是“比 Python 更短的 DSL”。
 
-Going one step further, `AI-DSL -> binary -> run` is not just an optional extra. It is one of the long-term end goals. The broader vision is that projects could eventually be built directly in AI-DSL, with compilers, runtimes, build tools, and debugging interfaces centered around AI-DSL itself, so AI can build and run software through a lower-token representation end to end.
+未来甚至可以继续演化出一种更偏向 AI 内部交换的语言形式：建立在更高信息密度的人类语言材料之上，主动删掉对 AI 推理帮助不大的修饰，再通过端侧翻译器快速恢复成宿主语言或人类可读文本。
 
-**what if code meant primarily for AI-to-machine exchange should use a representation that is more token-efficient than plain Python?**
+我现在更倾向于把这条路线理解成：
 
-The goal is not better readability for humans. The goal is to reduce token cost when code is generated, transmitted, and interpreted by language models.
+- 无损编码
+- 可损解码
 
-The current approach is:
+也就是 AI 之间交换的是尽量稳定、尽量紧凑的编码表示，而面向人类时可以允许重述、展开和风格化恢复，只要求语义不丢。
 
-- let the model emit a shorter DSL
-- compile the DSL locally into Python
-- keep using the Python runtime and ecosystem
+## 共建
 
-### Current status
+如果你觉得这个方向有价值，欢迎继续发扬光大，尤其欢迎真正懂这些的人：
 
-This is an early-stage prototype, not a finished language.
+- 编译器 / 程序语言
+- 程序分析
+- LLM 系统
+- tokenizer / 压缩 / 训练数据设计
 
-What is already here:
-
-- an indentation-sensitive DSL
-- a `DSL -> Python` compiler
-- an early `DSL -> C++` compiler
-- expression-level compression macros such as `F / M / FM / S / A / E / SFM / CF / DFM`
-- benchmark scripts using OpenAI-compatible token encodings
-
-### Backend roadmap
-
-The project is now explicitly moving toward multiple backend paths:
-
-1. `ai-dsl -> python -> interpreter -> run`
-2. `ai-dsl -> c++ -> compiler -> run`
-3. `ai-dsl -> binary -> run` (future target, not implemented yet)
-
-This is not just about supporting more targets for its own sake. Each path serves a different practical purpose:
-
-- Multiple language backends
-  make it easier to integrate the DSL into projects that are already built around different host languages. Some codebases are Python-first, some are C++-first, and future targets may include Rust, Go, or others.
-- A direct binary path
-  is meant for cases where the DSL should run without going through an interpreter or a host-language runtime first, with the goal of improving execution efficiency, deployment simplicity, and output control.
-
-In the short term, multiple language backends help AI-DSL integrate with existing projects.
-
-In the long term, a direct binary path means AI-DSL may stop being just a frontend to other languages and become a primary project-building representation in its own right. The ideal end state is not only "AI-DSL helps generate Python/C++", but "AI uses AI-DSL to build projects directly, while the toolchain is designed around AI-DSL itself."
-
-Right now, the Python backend is the stable path.
-
-The C++ backend is intentionally incomplete. Its current role is to prove that one DSL can target more than one execution language. For now it mainly supports:
-
-- function definitions
-- assignments
-- `if / else`
-- `return`
-- `print`
-- `len`
-- `F / M / FM / S / A / E` macros
-- basic numeric and string list literals
-
-It does not yet cover many Python-specific constructs, including:
-
-- f-strings
-- Python list-comprehension syntax
-- `range(...)`
-- more dynamic typing behavior
-
-### Python-first compression work
-
-The current first milestone is to make `AI-DSL -> Python` stronger before trying to make every backend equally complete.
-
-The current analysis focuses on common Python code shapes:
-
-- filter + map + reduce
-- dict comprehension
-- count-if
-- join + map
-- append loops that are really list transforms
-
-The first newly accepted macros, because they show real token savings, are:
-
-- `SFM(seq, cond, expr)`
-- `CF(seq, cond)`
-- `DFM(seq, key, value, cond)`
-
-### What this repo is trying to show
-
-The main question behind this project is:
-
-**if code is mostly exchanged between AI systems and execution environments, should we still optimize the surface language for humans first?**
-
-The current result is narrow but useful:
-
-- keyword shortening alone does not help much
-- compressing high-frequency structural patterns can produce real token savings
-
-### Personal note
-
-This is my own idea and prototype. My background is limited, and the implementation is still rough.
-
-If you find this direction interesting, I sincerely hope others can take it further:
-
-- build a cleaner language design
-- implement a more rigorous compiler
-- create larger benchmarks
-- write a stronger paper with broader experiments
-- push it toward a real AI-first programming interface
-
-If someone improves this idea substantially, I would be happy to see it happen.
-
-### Quick start
-
-```bash
-cd C:\Users\renzhc\workspace\ai-dsl-prototype
-python -m venv .venv
-.venv\Scripts\activate
-pip install -e .
-aidsl compile examples\fib.aidl
-aidsl run examples\fib.aidl
-aidsl compile benchmarks\small_task.aidl --target cpp
-```
-
-### Example
-
-```text
-f even_square_sum(nums)
-  = squares FM(nums,_%2==0,_*_)
-  r S(squares)
-
-= data [1, 2, 3, 4, 5, 6]
-= result even_square_sum(data)
-p result
-```
-
-Compiles to:
-
-```python
-def even_square_sum(nums):
-    squares = [it * it for it in nums if it % 2 == 0]
-    return sum(squares)
-
-data = [1, 2, 3, 4, 5, 6]
-result = even_square_sum(data)
-print(result)
-```
-
-### Token benchmarks
-
-Two benchmark scripts are included:
-
-- `scripts/compare_tokens.mjs`
-- `scripts/benchmark_pipeline.mjs`
-
-Run:
-
-```bash
-npm install
-node scripts/compare_tokens.mjs
-node scripts/benchmark_pipeline.mjs
-```
-
-### Layout
-
-- `src/aidsl/compiler.py`: Python and C++ backends
-- `src/aidsl/cli.py`: CLI
-- `examples/`: examples
-- `benchmarks/`: token benchmarks
-- `docs/paper_draft_zh.md`: Chinese paper draft
-- `docs/python_compression_analysis.md`: Python compression analysis
+我现在做的事情，本质上是在先把 idea 和原型钉下来。后面把它真正做成体系，靠的是更强的人来继续推进。

@@ -1,0 +1,2 @@
+Given a list of integers, build a report with transformed lists, aggregate values,
+boolean checks, and a lookup dictionary, then print the final report.

@@ -1,0 +1,152 @@
+{
+  "encodings": ["o200k_base", "cl100k_base"],
+  "cases": [
+    {
+      "name": "function_def",
+      "category": "statement",
+      "python": "def solve(x):",
+      "dsl": "f solve(x)",
+      "note": "function header"
+    },
+    {
+      "name": "if_header",
+      "category": "statement",
+      "python": "if x > 0:",
+      "dsl": "? x > 0",
+      "note": "if header"
+    },
+    {
+      "name": "else_header",
+      "category": "statement",
+      "python": "else:",
+      "dsl": ":",
+      "note": "else header"
+    },
+    {
+      "name": "return_stmt",
+      "category": "statement",
+      "python": "return total",
+      "dsl": "r total",
+      "note": "return"
+    },
+    {
+      "name": "assign_stmt",
+      "category": "statement",
+      "python": "total = value + 1",
+      "dsl": "= total value + 1",
+      "note": "assignment"
+    },
+    {
+      "name": "print_stmt",
+      "category": "statement",
+      "python": "print(result)",
+      "dsl": "p result",
+      "note": "print"
+    },
+    {
+      "name": "filter_macro",
+      "category": "macro",
+      "python": "evens = [x for x in nums if x % 2 == 0]",
+      "dsl": "= evens F(nums,_%2==0)",
+      "note": "filter list comprehension"
+    },
+    {
+      "name": "map_macro",
+      "category": "macro",
+      "python": "squares = [x * x for x in nums]",
+      "dsl": "= squares M(nums,_*_)",
+      "note": "map list comprehension"
+    },
+    {
+      "name": "filter_map_macro",
+      "category": "macro",
+      "python": "squares = [x * x for x in nums if x % 2 == 0]",
+      "dsl": "= squares FM(nums,_%2==0,_*_)",
+      "note": "filter + map comprehension"
+    },
+    {
+      "name": "sum_macro",
+      "category": "macro",
+      "python": "total = sum(values)",
+      "dsl": "= total S(values)",
+      "note": "sum aggregation"
+    },
+    {
+      "name": "any_macro",
+      "category": "macro",
+      "python": "ok = any(x > 0 for x in nums)",
+      "dsl": "= ok A(nums,_>0)",
+      "note": "any aggregation"
+    },
+    {
+      "name": "all_macro",
+      "category": "macro",
+      "python": "ok = all(x > 0 for x in nums)",
+      "dsl": "= ok E(nums,_>0)",
+      "note": "all aggregation"
+    },
+    {
+      "name": "sfm_macro",
+      "category": "macro",
+      "python": "total = sum(x * x for x in nums if x % 2 == 0)",
+      "dsl": "= total SFM(nums,_%2==0,_*_)",
+      "note": "sum after filter + map"
+    },
+    {
+      "name": "cf_macro",
+      "category": "macro",
+      "python": "count = sum(1 for x in nums if x > 10)",
+      "dsl": "= count CF(nums,_>10)",
+      "note": "count if"
+    },
+    {
+      "name": "dfm_macro",
+      "category": "macro",
+      "python": "mapping = {x: x * x for x in nums if x > 0}",
+      "dsl": "= mapping DFM(nums,_,_*_,_>0)",
+      "note": "dict filter + map"
+    },
+    {
+      "name": "co_macro",
+      "category": "macro",
+      "python": "hooks = hooks if hooks is not None else {}",
+      "dsl": "= hooks CO(hooks,{})",
+      "note": "none-coalesce default"
+    },
+    {
+      "name": "kv_macro",
+      "category": "macro",
+      "python": "mapped = {k: to_py_obj(v) for k, v in obj.items()}",
+      "dsl": "= mapped KV(obj,_k,to_py_obj(_v))",
+      "note": "dict items map"
+    },
+    {
+      "name": "kvf_macro",
+      "category": "macro",
+      "python": "filtered = {k: v for k, v in obj.items() if v is not None}",
+      "dsl": "= filtered KVF(obj,_k,_v,_v is not None)",
+      "note": "dict items filter + map"
+    },
+    {
+      "name": "anyn_macro",
+      "category": "macro",
+      "python": "has_none = any(x is None for x in (a, b, c))",
+      "dsl": "= has_none ANYN(a,b,c)",
+      "note": "any value is None"
+    },
+    {
+      "name": "allnn_macro",
+      "category": "macro",
+      "python": "all_present = all(x is not None for x in (a, b, c))",
+      "dsl": "= all_present ALLNN(a,b,c)",
+      "note": "all values are not None"
+    },
+    {
+      "name": "cntnn_macro",
+      "category": "macro",
+      "python": "present = sum(1 for x in (a, b, c) if x is not None)",
+      "dsl": "= present CNTNN(a,b,c)",
+      "note": "count not-none values"
+    }
+  ]
+}

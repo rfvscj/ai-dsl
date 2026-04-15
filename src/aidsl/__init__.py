@@ -1,3 +1,3 @@
-from .compiler import compile_source, count_stats
+from .compiler import compile_source, count_stats, translate_source
 
-__all__ = ["compile_source", "count_stats"]
+__all__ = ["compile_source", "count_stats", "translate_source"]

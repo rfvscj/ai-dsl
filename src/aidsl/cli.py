@@ -3,26 +3,35 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .compiler import compile_file, compile_source, count_stats, iter_examples, run_compiled
+from .compiler import count_stats, iter_examples, run_compiled, translate_file, translate_source
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Tiny AI-oriented DSL prototype")
+    parser = argparse.ArgumentParser(description="AI-DSL translators and interpreter")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    compile_cmd = sub.add_parser("compile", help="Compile DSL source into a backend")
+    translate_cmd = sub.add_parser("translate", help="Translate DSL source into a backend")
+    translate_cmd.add_argument("path", help="Path to a .aidl file")
+    translate_cmd.add_argument(
+        "--target",
+        choices=["python", "cpp"],
+        default="python",
+        help="Translation target backend",
+    )
+
+    compile_cmd = sub.add_parser("compile", help="Alias of translate")
     compile_cmd.add_argument("path", help="Path to a .aidl file")
     compile_cmd.add_argument(
         "--target",
         choices=["python", "cpp"],
         default="python",
-        help="Compilation target backend",
+        help="Translation target backend",
     )
 
-    run_cmd = sub.add_parser("run", help="Compile and execute a .aidl file")
+    run_cmd = sub.add_parser("run", help="Interpret a .aidl file via the Python translator")
     run_cmd.add_argument("path", help="Path to a .aidl file")
 
-    stats_cmd = sub.add_parser("stats", help="Show simple size statistics")
+    stats_cmd = sub.add_parser("stats", help="Show simple size statistics after Python translation")
     stats_cmd.add_argument("path", help="Path to a .aidl file")
 
     examples_cmd = sub.add_parser("examples", help="List bundled examples")
@@ -39,8 +48,8 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
-    if args.command == "compile":
-        print(compile_file(args.path, target=args.target), end="")
+    if args.command in {"translate", "compile"}:
+        print(translate_file(args.path, target=args.target), end="")
         return
 
     if args.command == "run":
@@ -50,7 +59,7 @@ def main() -> None:
 
     if args.command == "stats":
         source = Path(args.path).read_text(encoding="utf-8")
-        compiled = compile_source(source)
+        compiled = translate_source(source, target="python")
         stats = count_stats(source, compiled)
         for key, value in stats.items():
             print(f"{key}: {value}")

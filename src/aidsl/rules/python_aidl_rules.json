@@ -1,0 +1,192 @@
+{
+  "version": "0.1",
+  "target": "python",
+  "intent": {
+    "mode": "aidl-first",
+    "summary": "Receive Python-oriented tasks but emit AIDL directly.",
+    "training_direction": "This ruleset is the temporary bridge toward direct AIDL-native modeling and future AIDL-centric training.",
+    "temporary_note": "The skill plus structured-rules path is a prototype-stage integration strategy, not the intended final product.",
+    "scaling_risk": "If the ruleset becomes too large, too semantic, or too runtime-dependent, injecting it through prompts or skills may create token overhead and negative net benefit."
+  },
+  "principles": [
+    "Do not mirror Python syntax line by line.",
+    "Rewrite Python intent into the shortest stable AIDL form supported by the current translator.",
+    "Optimize for lower token output rather than human readability."
+  ],
+  "statement_forms": {
+    "f": {
+      "kind": "block",
+      "python": "def <sig>:",
+      "aidl": "f name(args):"
+    },
+    "?": {
+      "kind": "block",
+      "python": "if <cond>:",
+      "aidl": "? cond:"
+    },
+    ":": {
+      "kind": "block",
+      "python": "else:",
+      "aidl": ":"
+    },
+    "w": {
+      "kind": "block",
+      "python": "while <cond>:",
+      "aidl": "w cond:"
+    },
+    "for": {
+      "kind": "block",
+      "python": "for <item> in <seq>:",
+      "aidl": "for item in seq:"
+    },
+    "r": {
+      "kind": "line",
+      "python": "return <expr>",
+      "aidl": "r expr"
+    },
+    "p": {
+      "kind": "line",
+      "python": "print(<expr>)",
+      "aidl": "p expr"
+    },
+    "=": {
+      "kind": "line",
+      "python": "<name> = <expr>",
+      "aidl": "= name expr"
+    },
+    "py": {
+      "kind": "escape",
+      "python": "<python_stmt>",
+      "aidl": "py <python_stmt>"
+    }
+  },
+  "placeholders": {
+    "_": "current sequence item",
+    "_k": "current dict key",
+    "_v": "current dict value"
+  },
+  "macros": {
+    "F": {
+      "arity": 2,
+      "category": "sequence",
+      "python_shape": "[x for x in seq if cond(x)]",
+      "rewrite_hint": "Use for pure filter."
+    },
+    "M": {
+      "arity": 2,
+      "category": "sequence",
+      "python_shape": "[expr(x) for x in seq]",
+      "rewrite_hint": "Use for pure map."
+    },
+    "FM": {
+      "arity": 3,
+      "category": "sequence",
+      "python_shape": "[expr(x) for x in seq if cond(x)]",
+      "rewrite_hint": "Use for filter then map."
+    },
+    "S": {
+      "arity": 1,
+      "category": "aggregate",
+      "python_shape": "sum(seq)",
+      "rewrite_hint": "Use for direct sum."
+    },
+    "A": {
+      "arity": 2,
+      "category": "aggregate",
+      "python_shape": "any(cond(x) for x in seq)",
+      "rewrite_hint": "Use for existential checks over a sequence."
+    },
+    "E": {
+      "arity": 2,
+      "category": "aggregate",
+      "python_shape": "all(cond(x) for x in seq)",
+      "rewrite_hint": "Use for universal checks over a sequence."
+    },
+    "SFM": {
+      "arity": 3,
+      "category": "aggregate",
+      "python_shape": "sum(expr(x) for x in seq if cond(x))",
+      "rewrite_hint": "Use instead of sum over filter-map."
+    },
+    "CF": {
+      "arity": 2,
+      "category": "aggregate",
+      "python_shape": "sum(1 for x in seq if cond(x))",
+      "rewrite_hint": "Use instead of len(filter(...)) or counting comprehension results."
+    },
+    "DFM": {
+      "arity": 4,
+      "category": "dict",
+      "python_shape": "{key(x): value(x) for x in seq if cond(x)}",
+      "rewrite_hint": "Use for dict construction from a filtered sequence."
+    },
+    "CO": {
+      "arity": 2,
+      "category": "coalesce",
+      "python_shape": "value if value is not None else fallback",
+      "rewrite_hint": "Use for None coalescing."
+    },
+    "KV": {
+      "arity": 3,
+      "category": "dict",
+      "python_shape": "{k_expr: v_expr for k, v in obj.items()}",
+      "rewrite_hint": "Use for dict item transform."
+    },
+    "KVF": {
+      "arity": 4,
+      "category": "dict",
+      "python_shape": "{k_expr: v_expr for k, v in obj.items() if cond}",
+      "rewrite_hint": "Use for dict item filter-map."
+    },
+    "ANYN": {
+      "min_arity": 1,
+      "category": "presence",
+      "python_shape": "any(it is None for it in (...))",
+      "rewrite_hint": "Use when any value may be None."
+    },
+    "ALLNN": {
+      "min_arity": 1,
+      "category": "presence",
+      "python_shape": "all(it is not None for it in (...))",
+      "rewrite_hint": "Use when all values must be non-None."
+    },
+    "CNTNN": {
+      "min_arity": 1,
+      "category": "presence",
+      "python_shape": "sum(1 for it in (...) if it is not None)",
+      "rewrite_hint": "Use to count non-None inputs."
+    }
+  },
+  "preferred_rewrites": [
+    {
+      "python": "sum(expr(x) for x in seq if pred(x))",
+      "aidl": "SFM(seq, pred, expr)"
+    },
+    {
+      "python": "len([x for x in seq if pred(x)])",
+      "aidl": "CF(seq, pred)"
+    },
+    {
+      "python": "{k: v for k, v in obj.items()}",
+      "aidl": "KV(obj, _k, _v)"
+    },
+    {
+      "python": "{k: v for k, v in obj.items() if cond}",
+      "aidl": "KVF(obj, _k, _v, cond)"
+    },
+    {
+      "python": "value if value is not None else fallback",
+      "aidl": "CO(value, fallback)"
+    },
+    {
+      "python": "repeated is None / is not None checks",
+      "aidl": "ANYN / ALLNN / CNTNN"
+    }
+  ],
+  "restrictions": [
+    "Stay within the current Python translator subset.",
+    "Do not invent new macros in outputs.",
+    "If a construct is unsupported, use the narrowest possible py escape or explicitly state the limitation.",
+    "Do not emit Python and AIDL side by side unless explicitly requested."
+  ]
+}
