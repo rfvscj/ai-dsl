@@ -181,6 +181,63 @@ def split_top_level_statements(text: str) -> List[str]:
     return [part for part in parts if part]
 
 
+def split_top_level_tokens(text: str, maxsplit: int = -1) -> List[str]:
+    if not text.strip():
+        return []
+    parts: List[str] = []
+    start = 0
+    depth = 0
+    quote = ""
+    escape = False
+    splits = 0
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    closing = set(pairs.values())
+
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if quote:
+            if escape:
+                escape = False
+                index += 1
+                continue
+            if char == "\\":
+                escape = True
+                index += 1
+                continue
+            if char == quote:
+                quote = ""
+            index += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            index += 1
+            continue
+        if char in pairs:
+            depth += 1
+            index += 1
+            continue
+        if char in closing:
+            depth -= 1
+            index += 1
+            continue
+        if depth == 0 and (char == "," or char.isspace()):
+            parts.append(text[start:index].strip())
+            splits += 1
+            index += 1
+            while index < len(text) and (text[index] == "," or text[index].isspace()):
+                index += 1
+            start = index
+            if maxsplit >= 0 and splits >= maxsplit:
+                break
+            continue
+        index += 1
+    tail = text[start:].strip()
+    if tail:
+        parts.append(tail)
+    return [part for part in parts if part]
+
+
 def find_matching_paren(text: str, start: int) -> int:
     depth = 0
     quote = ""

@@ -13,6 +13,7 @@
     "Prefer lower token output over readability.",
     "Keep direct Python passthrough available via a file-level py header escape hatch.",
     "If multiple adjacent statements share the same kind, prefer grouped operators when they materially reduce token cost.",
+    "Prefer operator-led import syntax over raw Python imports when the shorthand clearly compresses common boilerplate.",
     "Retain only rules with clear practical value or measured savings.",
     "This branch optimizes AIDL -> Python, not Python -> AIDL reversibility."
   ],
@@ -102,6 +103,21 @@
       "kind": "line",
       "python": "<target> = <expr>",
       "aidl": "= target expr"
+    },
+    "imp": {
+      "kind": "line-group",
+      "python": "one or more import lines, optionally via presets",
+      "aidl": "imp token1 token2 ... / imp token1,token2,..."
+    },
+    "from": {
+      "kind": "line",
+      "python": "from module import a, b, ...",
+      "aidl": "from module a b / from module,a,b"
+    },
+    "as": {
+      "kind": "line",
+      "python": "import module as alias",
+      "aidl": "as module alias / as module,alias"
     },
     "==": {
       "kind": "line-group",
@@ -312,6 +328,10 @@
     {
       "python": "Common PyTorch training boilerplate",
       "aidl": "Prefer SEQ / C2 / RL / FL / LN / CE / SGD / DEV / TR / TI"
+    },
+    {
+      "python": "Common import boilerplate",
+      "aidl": "Prefer imp / from / as when they remove repetitive import keywords or common torch stacks"
     },
     {
       "python": "Runs of adjacent assignments or expression-only statements",

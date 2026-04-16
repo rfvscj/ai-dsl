@@ -1,6 +1,4 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
+imp optim
 torch.manual_seed(0)
 == model SEQ(C2(1,4,3),RL(),FL(),LN(4*4*4,2)); device DEV("cpu")
 model.to(device)

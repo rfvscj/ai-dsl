@@ -9,6 +9,7 @@ from .frontend import (
     normalize_lines,
     split_top_level_args,
     split_top_level_statements,
+    split_top_level_tokens,
 )
 from .rules import load_python_rules
 
@@ -18,6 +19,11 @@ _MACRO_NAMES = set(_MACRO_SPECS)
 _PLACEHOLDER_RE = re.compile(r"\b_\b")
 _PLACEHOLDER_KEY_RE = re.compile(r"\b_k\b")
 _PLACEHOLDER_VALUE_RE = re.compile(r"\b_v\b")
+_IMPORT_PRESETS = {
+    "nn": ["import torch", "import torch.nn as nn"],
+    "optim": ["import torch", "import torch.nn as nn", "import torch.optim as optim"],
+    "F": ["import torch", "import torch.nn as nn", "import torch.nn.functional as F"],
+}
 
 
 def _replace_placeholders(
@@ -175,34 +181,26 @@ def _emit_header(kind: str, rest: str) -> str:
 
 
 def _split_assignment_tail(tail: str) -> Tuple[str, str]:
-    depth = 0
-    quote = ""
-    escape = False
-    pairs = {"(": ")", "[": "]", "{": "}"}
-    closing = set(pairs.values())
-    for index, char in enumerate(tail):
-        if quote:
-            if escape:
-                escape = False
-                continue
-            if char == "\\":
-                escape = True
-                continue
-            if char == quote:
-                quote = ""
-            continue
-        if char in {"'", '"'}:
-            quote = char
-            continue
-        if char in pairs:
-            depth += 1
-            continue
-        if char in closing:
-            depth -= 1
-            continue
-        if char == " " and depth == 0:
-            return tail[:index], tail[index + 1 :]
-    raise DSLCompileError("assignment must separate target and expression with a top-level space")
+    parts = split_top_level_tokens(tail, maxsplit=1)
+    if len(parts) != 2:
+        raise DSLCompileError("assignment must separate target and expression with a top-level separator")
+    return parts[0], parts[1]
+
+
+def _render_import_preset(name: str) -> List[str]:
+    if name in _IMPORT_PRESETS:
+        return _IMPORT_PRESETS[name]
+    return [f"import {name}"]
+
+
+def _dedupe_preserve_order(items: List[str]) -> List[str]:
+    seen = set()
+    out: List[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
 
 
 def _translate_line(text: str, next_indent: int, current_indent: int, line_number: int) -> str:
@@ -243,6 +241,26 @@ def _translate_line(text: str, next_indent: int, current_indent: int, line_numbe
                 f"Line {line_number}: assignment must look like `= target expression`"
             )
         return f"{name} = {rewrite_python_expression(expr)}"
+    if head == "imp":
+        tokens = split_top_level_tokens(tail)
+        if not tokens:
+            raise DSLCompileError(f"Line {line_number}: `imp` requires at least one import token")
+        rendered: List[str] = []
+        for token in tokens:
+            rendered.extend(_render_import_preset(token))
+        return "\n".join(_dedupe_preserve_order(rendered))
+    if head == "from":
+        tokens = split_top_level_tokens(tail)
+        if len(tokens) < 2:
+            raise DSLCompileError(f"Line {line_number}: `from` requires a module and at least one imported name")
+        module = tokens[0]
+        names = ", ".join(tokens[1:])
+        return f"from {module} import {names}"
+    if head == "as":
+        tokens = split_top_level_tokens(tail)
+        if len(tokens) != 2:
+            raise DSLCompileError(f"Line {line_number}: `as` requires exactly two operands")
+        return f"import {tokens[0]} as {tokens[1]}"
     if head == "==":
         items = split_top_level_statements(tail)
         if not items:
