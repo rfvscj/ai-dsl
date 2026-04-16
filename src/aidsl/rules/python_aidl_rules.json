@@ -3,19 +3,24 @@
   "target": "python",
   "intent": {
     "mode": "aidl-first",
-    "summary": "Receive Python-oriented tasks but emit AIDL directly.",
-    "training_direction": "This ruleset is the temporary bridge toward direct AIDL-native modeling and future AIDL-centric training.",
-    "temporary_note": "The skill plus structured-rules path is a prototype-stage integration strategy, not the intended final product.",
-    "scaling_risk": "If the ruleset becomes too large, too semantic, or too runtime-dependent, injecting it through prompts or skills may create token overhead and negative net benefit.",
-    "current_constraint": "At the current stage, syntax design must preserve bidirectional Python <-> AIDL conversion and one-to-one reversibility."
+    "summary": "Aggressive Python-only AIDL ruleset focused on lower output token cost.",
+    "training_direction": "This branch intentionally optimizes the AIDL -> Python path first.",
+    "temporary_note": "This is an exploration branch for aggressive lowering, not the stable reversible branch.",
+    "scaling_risk": "Rules that do not pay for themselves in token savings should be removed.",
+    "current_constraint": "Keep only rules that are useful in practice for Python generation."
   },
   "principles": [
-    "Do not mirror Python syntax line by line.",
-    "Rewrite Python intent into the shortest stable AIDL form supported by the current translator.",
-    "Optimize for lower token output rather than human readability.",
-    "Do not introduce mainline syntax that breaks Python <-> AIDL reversibility at the current stage."
+    "Prefer lower token output over readability.",
+    "Keep direct Python passthrough available via a file-level py header escape hatch.",
+    "Retain only rules with clear practical value or measured savings.",
+    "This branch optimizes AIDL -> Python, not Python -> AIDL reversibility."
   ],
   "statement_forms": {
+    "py_header": {
+      "kind": "surface",
+      "python": "If the first physical line is exactly py, the rest of the file is treated as raw Python.",
+      "aidl": "py\\n<raw python>"
+    },
     "_flat_mode": {
       "kind": "surface",
       "python": "left-aligned line + trailing digit for next-line indentation spaces",
@@ -24,7 +29,7 @@
         "Flat mode keeps every line left-aligned.",
         "The trailing digit encodes the next line's indentation space count.",
         "In the current Python path, the next indentation count should be even.",
-        "The current serializer keeps the last line suffix explicit for stable round-tripping."
+        "When the next line is top-level, the current serializer omits the trailing suffix."
       ]
     },
     "f": {
@@ -36,6 +41,11 @@
       "kind": "block",
       "python": "if <cond>:",
       "aidl": "? cond:"
+    },
+    "elif": {
+      "kind": "block",
+      "python": "elif <cond>:",
+      "aidl": "elif cond:"
     },
     ":": {
       "kind": "block",
@@ -52,6 +62,31 @@
       "python": "for <item> in <seq>:",
       "aidl": "for item in seq:"
     },
+    "class": {
+      "kind": "block",
+      "python": "class <name>(...):",
+      "aidl": "class Name(...):"
+    },
+    "with": {
+      "kind": "block",
+      "python": "with <expr> [as name], ...:",
+      "aidl": "with expr as name, ..."
+    },
+    "try": {
+      "kind": "block",
+      "python": "try:",
+      "aidl": "try"
+    },
+    "except": {
+      "kind": "block",
+      "python": "except [Type [as name]]:",
+      "aidl": "except Type as name"
+    },
+    "finally": {
+      "kind": "block",
+      "python": "finally:",
+      "aidl": "finally"
+    },
     "r": {
       "kind": "line",
       "python": "return <expr>",
@@ -64,8 +99,8 @@
     },
     "=": {
       "kind": "line",
-      "python": "<name> = <expr>",
-      "aidl": "= name expr"
+      "python": "<target> = <expr>",
+      "aidl": "= target expr"
     },
     "py": {
       "kind": "escape",
@@ -168,6 +203,66 @@
       "category": "presence",
       "python_shape": "sum(1 for it in (...) if it is not None)",
       "rewrite_hint": "Use to count non-None inputs."
+    },
+    "SEQ": {
+      "min_arity": 1,
+      "category": "torch",
+      "python_shape": "nn.Sequential(...)",
+      "rewrite_hint": "Use for common sequential model definitions."
+    },
+    "C2": {
+      "arity": 3,
+      "category": "torch",
+      "python_shape": "nn.Conv2d(in_c, out_c, kernel_size=k)",
+      "rewrite_hint": "Use for 2D convolution layers."
+    },
+    "RL": {
+      "arity": 0,
+      "category": "torch",
+      "python_shape": "nn.ReLU()",
+      "rewrite_hint": "Use for ReLU layers."
+    },
+    "FL": {
+      "arity": 0,
+      "category": "torch",
+      "python_shape": "nn.Flatten()",
+      "rewrite_hint": "Use for flatten layers."
+    },
+    "LN": {
+      "arity": 2,
+      "category": "torch",
+      "python_shape": "nn.Linear(in_features, out_features)",
+      "rewrite_hint": "Use for linear layers."
+    },
+    "CE": {
+      "arity": 0,
+      "category": "torch",
+      "python_shape": "nn.CrossEntropyLoss()",
+      "rewrite_hint": "Use for classification loss."
+    },
+    "SGD": {
+      "arity": 2,
+      "category": "torch",
+      "python_shape": "optim.SGD(params, lr=lr)",
+      "rewrite_hint": "Use for SGD optimizer setup."
+    },
+    "DEV": {
+      "arity": 1,
+      "category": "torch",
+      "python_shape": "torch.device(name)",
+      "rewrite_hint": "Use for device construction."
+    },
+    "TR": {
+      "min_arity": 1,
+      "category": "torch",
+      "python_shape": "torch.randn(...)",
+      "rewrite_hint": "Use for random tensors."
+    },
+    "TI": {
+      "min_arity": 1,
+      "category": "torch",
+      "python_shape": "torch.randint(...)",
+      "rewrite_hint": "Use for integer label tensors."
     }
   },
   "preferred_rewrites": [
@@ -194,13 +289,24 @@
     {
       "python": "repeated is None / is not None checks",
       "aidl": "ANYN / ALLNN / CNTNN"
+    },
+    {
+      "python": "list/dict comprehension, any/all/sum generator pipelines",
+      "aidl": "Prefer F / M / FM / S / A / E / SFM / CF / DFM / KV / KVF when the pattern is exactly reversible"
+    },
+    {
+      "python": "elif / with / try / except / finally / class",
+      "aidl": "Prefer native block syntax instead of py escapes"
+    },
+    {
+      "python": "Common PyTorch training boilerplate",
+      "aidl": "Prefer SEQ / C2 / RL / FL / LN / CE / SGD / DEV / TR / TI"
     }
   ],
   "restrictions": [
     "Stay within the current Python translator subset.",
-    "Current syntax design must preserve bidirectional Python <-> AIDL reversibility.",
-    "Do not invent new macros in outputs.",
-    "If a construct is unsupported, use the narrowest possible py escape or explicitly state the limitation.",
+    "Do not invent macros that have no clear practical payoff.",
+    "If a construct is unsupported, use the narrowest possible raw Python fallback.",
     "Do not emit Python and AIDL side by side unless explicitly requested."
   ]
 }

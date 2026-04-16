@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from .frontend import (
     DSLCompileError,
@@ -31,6 +31,29 @@ def _replace_placeholders(
 
 
 def _expand_macro(name: str, args: List[str]) -> str:
+    if name == "SEQ":
+        return f"nn.Sequential({', '.join(args)})"
+    if name == "C2":
+        in_channels, out_channels, kernel_size = args
+        return f"nn.Conv2d({in_channels}, {out_channels}, kernel_size={kernel_size})"
+    if name == "RL":
+        return "nn.ReLU()"
+    if name == "FL":
+        return "nn.Flatten()"
+    if name == "LN":
+        in_features, out_features = args
+        return f"nn.Linear({in_features}, {out_features})"
+    if name == "CE":
+        return "nn.CrossEntropyLoss()"
+    if name == "SGD":
+        params, lr = args
+        return f"optim.SGD({params}, lr={lr})"
+    if name == "DEV":
+        return f"torch.device({args[0]})"
+    if name == "TR":
+        return f"torch.randn({', '.join(args)})"
+    if name == "TI":
+        return f"torch.randint({', '.join(args)})"
     if name == "ANYN":
         joined = ", ".join(args)
         return f"any(it is None for it in ({joined},))"
@@ -131,11 +154,54 @@ def _emit_header(kind: str, rest: str) -> str:
         return f"def {rest}:"
     if kind == "?":
         return f"if {rest}:"
+    if kind == "elif":
+        return f"elif {rest}:"
     if kind == "w":
         return f"while {rest}:"
     if kind == "for":
         return f"for {rest}:"
+    if kind == "class":
+        return f"class {rest}:"
+    if kind == "with":
+        return f"with {rest}:"
+    if kind == "except":
+        return f"except {rest}:"
+    if kind == "try":
+        return "try:"
+    if kind == "finally":
+        return "finally:"
     raise AssertionError(f"unsupported header kind: {kind}")
+
+
+def _split_assignment_tail(tail: str) -> Tuple[str, str]:
+    depth = 0
+    quote = ""
+    escape = False
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    closing = set(pairs.values())
+    for index, char in enumerate(tail):
+        if quote:
+            if escape:
+                escape = False
+                continue
+            if char == "\\":
+                escape = True
+                continue
+            if char == quote:
+                quote = ""
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            continue
+        if char in pairs:
+            depth += 1
+            continue
+        if char in closing:
+            depth -= 1
+            continue
+        if char == " " and depth == 0:
+            return tail[:index], tail[index + 1 :]
+    raise DSLCompileError("assignment must separate target and expression with a top-level space")
 
 
 def _translate_line(text: str, next_indent: int, current_indent: int, line_number: int) -> str:
@@ -148,22 +214,37 @@ def _translate_line(text: str, next_indent: int, current_indent: int, line_numbe
     parts = text.split(" ", 1)
     head = parts[0]
     tail = parts[1] if len(parts) > 1 else ""
-    if head in {"f", "?", "w", "for"}:
+    if head in {"f", "?", "elif", "w", "for", "class", "with", "except"}:
         if not tail:
             raise DSLCompileError(f"Line {line_number}: `{head}` requires content")
         if next_indent <= current_indent:
             raise DSLCompileError(
                 f"Line {line_number}: block header must be followed by an indented body"
             )
-        return _emit_header(head, tail)
-    if head == "=":
-        name, sep, expr = tail.partition(" ")
-        if not sep or not name or not expr:
+        return _emit_header(head, rewrite_python_expression(tail))
+    if head in {"try", "finally"}:
+        if tail:
+            raise DSLCompileError(f"Line {line_number}: `{head}` does not take inline content")
+        if next_indent <= current_indent:
             raise DSLCompileError(
-                f"Line {line_number}: assignment must look like `= name expression`"
+                f"Line {line_number}: block header must be followed by an indented body"
+            )
+        return _emit_header(head, "")
+    if head == "=":
+        try:
+            name, expr = _split_assignment_tail(tail)
+        except DSLCompileError as exc:
+            raise DSLCompileError(
+                f"Line {line_number}: assignment must look like `= target expression`"
+            ) from exc
+        if not name or not expr:
+            raise DSLCompileError(
+                f"Line {line_number}: assignment must look like `= target expression`"
             )
         return f"{name} = {rewrite_python_expression(expr)}"
     if head == "r":
+        if not tail:
+            return "return"
         return f"return {rewrite_python_expression(tail)}"
     if head == "p":
         return f"print({rewrite_python_expression(tail)})"
@@ -173,6 +254,10 @@ def _translate_line(text: str, next_indent: int, current_indent: int, line_numbe
 
 
 def translate_source_python(source: str) -> str:
+    raw_lines = source.splitlines()
+    if raw_lines and raw_lines[0].strip() == "py" and raw_lines[0].strip() == raw_lines[0]:
+        passthrough = "\n".join(raw_lines[1:])
+        return passthrough + ("\n" if passthrough and not passthrough.endswith("\n") else "")
     lines = normalize_lines(source)
     if not lines:
         return ""

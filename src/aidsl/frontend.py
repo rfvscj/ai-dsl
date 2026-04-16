@@ -50,14 +50,7 @@ def _looks_like_flat_mode(significant: Sequence[Tuple[int, str]]) -> bool:
         return False
     if any(raw.startswith(" ") for _, raw in significant):
         return False
-    if len(significant) == 1:
-        return bool(_FLAT_SUFFIX_RE.match(significant[0][1].rstrip()))
-    for _, raw in significant[:-1]:
-        if _FLAT_SUFFIX_RE.match(raw.rstrip()) is None:
-            return False
-        if not re.search(r" [0-9]$", raw.rstrip()):
-            return False
-    return True
+    return all(_FLAT_SUFFIX_RE.match(raw.rstrip()) is not None for _, raw in significant)
 
 
 def _normalize_flat_lines(significant: Sequence[Tuple[int, str]]) -> List[Line]:
@@ -105,11 +98,16 @@ def render_flat_aidl(source: str) -> str:
         next_indent_spaces = (
             lines[index + 1].indent * 2 if index + 1 < len(lines) else 0
         )
-        out.append(f"{line.text} {next_indent_spaces}")
+        if next_indent_spaces > 0:
+            out.append(f"{line.text} {next_indent_spaces}")
+        else:
+            out.append(line.text)
     return "\n".join(out) + ("\n" if out else "")
 
 
 def split_top_level_args(text: str) -> List[str]:
+    if not text.strip():
+        return []
     args: List[str] = []
     start = 0
     depth = 0
