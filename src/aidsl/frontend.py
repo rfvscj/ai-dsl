@@ -143,6 +143,44 @@ def split_top_level_args(text: str) -> List[str]:
     return args
 
 
+def split_top_level_statements(text: str) -> List[str]:
+    if not text.strip():
+        return []
+    parts: List[str] = []
+    start = 0
+    depth = 0
+    quote = ""
+    escape = False
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    closing = set(pairs.values())
+
+    for index, char in enumerate(text):
+        if quote:
+            if escape:
+                escape = False
+                continue
+            if char == "\\":
+                escape = True
+                continue
+            if char == quote:
+                quote = ""
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            continue
+        if char in pairs:
+            depth += 1
+            continue
+        if char in closing:
+            depth -= 1
+            continue
+        if char == ";" and depth == 0:
+            parts.append(text[start:index].strip())
+            start = index + 1
+    parts.append(text[start:].strip())
+    return [part for part in parts if part]
+
+
 def find_matching_paren(text: str, start: int) -> int:
     depth = 0
     quote = ""

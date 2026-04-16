@@ -1,0 +1,18 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+torch.manual_seed(0)
+= model SEQ(C2(1,4,3),RL(),FL(),LN(4*4*4,2))
+= device DEV("cpu")
+model.to(device)
+= x TR(8,1,6,6,device=device)
+= y TI(0,2,(8,),device=device)
+= criterion CE()
+= optimizer SGD(model.parameters(),0.05)
+for step in range(10)
+  optimizer.zero_grad()
+  = logits model(x)
+  = loss criterion(logits, y)
+  loss.backward()
+  optimizer.step()
+  p f"step={step} loss={loss.item():.6f}"

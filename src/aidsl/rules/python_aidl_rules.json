@@ -12,6 +12,7 @@
   "principles": [
     "Prefer lower token output over readability.",
     "Keep direct Python passthrough available via a file-level py header escape hatch.",
+    "If multiple adjacent statements share the same kind, prefer grouped operators when they materially reduce token cost.",
     "Retain only rules with clear practical value or measured savings.",
     "This branch optimizes AIDL -> Python, not Python -> AIDL reversibility."
   ],
@@ -101,6 +102,16 @@
       "kind": "line",
       "python": "<target> = <expr>",
       "aidl": "= target expr"
+    },
+    "==": {
+      "kind": "line-group",
+      "python": "<target1> = <expr1>; <target2> = <expr2>; ...",
+      "aidl": "== target1 expr1; target2 expr2; ..."
+    },
+    ">>": {
+      "kind": "line-group",
+      "python": "<stmt1>; <stmt2>; ...",
+      "aidl": ">> stmt1; stmt2; ..."
     },
     "py": {
       "kind": "escape",
@@ -301,6 +312,10 @@
     {
       "python": "Common PyTorch training boilerplate",
       "aidl": "Prefer SEQ / C2 / RL / FL / LN / CE / SGD / DEV / TR / TI"
+    },
+    {
+      "python": "Runs of adjacent assignments or expression-only statements",
+      "aidl": "Prefer == and >> when grouping removes repeated prefixes without obscuring the code"
     }
   ],
   "restrictions": [

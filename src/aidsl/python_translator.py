@@ -8,6 +8,7 @@ from .frontend import (
     find_matching_paren,
     normalize_lines,
     split_top_level_args,
+    split_top_level_statements,
 )
 from .rules import load_python_rules
 
@@ -242,6 +243,25 @@ def _translate_line(text: str, next_indent: int, current_indent: int, line_numbe
                 f"Line {line_number}: assignment must look like `= target expression`"
             )
         return f"{name} = {rewrite_python_expression(expr)}"
+    if head == "==":
+        items = split_top_level_statements(tail)
+        if not items:
+            raise DSLCompileError(f"Line {line_number}: `==` requires at least one assignment")
+        rendered: List[str] = []
+        for item in items:
+            try:
+                name, expr = _split_assignment_tail(item)
+            except DSLCompileError as exc:
+                raise DSLCompileError(
+                    f"Line {line_number}: grouped assignment entries must look like `target expression`"
+                ) from exc
+            rendered.append(f"{name} = {rewrite_python_expression(expr)}")
+        return "\n".join(rendered)
+    if head == ">>":
+        items = split_top_level_statements(tail)
+        if not items:
+            raise DSLCompileError(f"Line {line_number}: `>>` requires at least one statement")
+        return "\n".join(rewrite_python_expression(item) for item in items)
     if head == "r":
         if not tail:
             return "return"
@@ -268,10 +288,10 @@ def translate_source_python(source: str) -> str:
             raise DSLCompileError(
                 f"Line {line.number}: indentation jumped more than one level"
             )
-        out.append(
-            ("    " * line.indent)
-            + _translate_line(line.text, next_indent, line.indent, line.number)
-        )
+        translated = _translate_line(line.text, next_indent, line.indent, line.number)
+        indent = "    " * line.indent
+        for rendered_line in translated.splitlines():
+            out.append(indent + rendered_line)
     return "\n".join(out) + "\n"
 
 
